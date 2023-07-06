@@ -1,6 +1,7 @@
 import inspect
 import importlib
 import pandas as pd
+import igraph as ig
 
 
 def get_default_values(func):
@@ -20,7 +21,7 @@ def get_default_values(func):
     return pd.DataFrame(output)
 
 
-def find_named_arguments(module_name):
+def get_dependencies(module_name):
     module = importlib.import_module(module_name)
 
     results = []
@@ -32,3 +33,28 @@ def find_named_arguments(module_name):
             results.append(defaults_df)
 
     return pd.concat(results)
+
+
+def get_dep_graph(module):
+    edges = get_dependencies(module)
+    return ig.Graph.TupleList(edges.itertuples(index=False), directed=True)
+
+
+def plot_dependencies(module):
+    g = get_dep_graph(module)
+    ig.plot(g)
+
+
+def parse_deps(feature, module, mode):
+    g = get_dep_graph(module)
+    paths = g.get_all_shortest_paths(feature, mode=mode)
+    features = g.vs[i]["name"] for i in path[1:]
+    return list(features)
+
+
+def upstream_features(feature, module):
+    return parse_deps(feature, module, mode="out")
+
+
+def downstream_features(feature, module):
+    return parse_deps(feature, module, "in")
